@@ -251,7 +251,7 @@ fetch('anp_mexico.geojson')
   });
 
 function calcularSinPM() {
-  const cats = ['PN','APFF','RB','APRN'];
+  const cats = ['PN','APFF','RB','APRN', 'SANT'];
   const ids   = ['sinpm-pn','sinpm-apff','sinpm-rb','sinpm-aprn', 'sinpm-sant'];
   cats.forEach((cat, i) => {
     const n = todosLosDatos.filter(d => d.CAT_MANEJO === cat && !d.PM).length;
