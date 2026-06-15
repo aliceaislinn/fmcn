@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>ANPs México – FMCN</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #mapa { height: 100vh; width: 100%; }
+
+    #panel {
+      position: absolute; top: 10px; right: 10px; z-index: 1000;
+      background: white; padding: 15px; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3); width: 230px;
+    }
+    #panel h2 { margin: 0 0 4px 0; font-size: 15px; color: #2c7a3f; }
+    #panel p  { margin: 0 0 12px 0; font-size: 11px; color: #666; }
+    #panel hr { border: none; border-top: 1px solid #eee; margin: 10px 0; }
+
+    .modo-btn {
+      width: 48%; padding: 6px; border: 2px solid #ccc;
+      border-radius: 6px; cursor: pointer; font-size: 12px;
+      background: white; transition: all 0.2s;
+    }
+    .modo-btn.activo { border-color: #2c7a3f; background: #f0f7f2; font-weight: bold; }
+
+    .filtro-btn {
+      display: block; width: 100%; margin: 3px 0;
+      padding: 5px 8px; border: none; border-radius: 4px;
+      cursor: pointer; text-align: left; font-size: 11px;
+      color: white; transition: opacity 0.2s;
+    }
+    .filtro-btn.inactivo { opacity: 0.35; }
+
+    #resumen {
+      font-size: 11px; color: #444; margin-top: 8px;
+      padding: 6px; background: #f9f9f9; border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="mapa"></div>
+
+<div id="panel">
+  <h2>🗺️ ANPs México – FMCN</h2>
+  <p>Fuente: CONANP, 4 julio 2025</p>
+
+  <!-- Selector de modo -->
+  <div style="display:flex; gap:4px; margin-bottom:10px;">
+    <button class="modo-btn activo" id="btn-modo-cat"   onclick="cambiarModo('categoria')">Por categoría</button>
+    <button class="modo-btn"        id="btn-modo-prior" onclick="cambiarModo('prioridad')">Por prioridad</button>
+  </div>
+
+  <div id="contenedor-filtros"></div>
+
+  <div id="resumen"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+
+// ── Mapa base ──────────────────────────────────────────────
+const mapa = L.map('mapa').setView([23.5, -102], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(mapa);
+
+// ── Configuración de colores ───────────────────────────────
+const colorsCat = {
+  'PN':   '#2196F3',
+  'RB':   '#4CAF50',
+  'APFF': '#FF9800',
+  'SANT': '#E91E63',
+  'APRN': '#9C27B0',
+  'MN':   '#795548'
+};
+const nombresCat = {
+  'PN':   'Parque Nacional (79)',
+  'RB':   'Reserva de Biosfera (48)',
+  'APFF': 'Área Prot. Flora y Fauna (57)',
+  'SANT': 'Santuario (28)',
+  'APRN': 'Área Prot. Recursos Nat. (15)',
+  'MN':   'Monumento Natural (5)'
+};
+
+const colorsPrior = {
+  'Alta':  '#d32f2f',
+  'Media': '#f9a825',
+  'Baja':  '#388e3c'
+};
+const nombresPrior = {
+  'Alta':  '🔴 Prioridad Alta',
+  'Media': '🟡 Prioridad Media',
+  'Baja':  '🟢 Prioridad Baja'
+};
+
+// ── Estado de la app ───────────────────────────────────────
+let modo = 'categoria';
+let activas = new Set();
+let capas = {};
+let todosLosDatos = null;
+
+// ── Cargar GeoJSON ─────────────────────────────────────────
+fetch('anp_mexico.geojson')
+  .then(r => r.json())
+  .then(data => {
+    todosLosDatos = data;
+    cambiarModo('categoria');
+  });
+
+// ── Cambiar entre modos ────────────────────────────────────
+function cambiarModo(nuevoModo) {
+  modo = nuevoModo;
+
+  document.getElementById('btn-modo-cat').classList.toggle('activo',   modo === 'categoria');
+  document.getElementById('btn-modo-prior').classList.toggle('activo', modo === 'prioridad');
+
+  const colores  = modo === 'categoria' ? colorsCat   : colorsPrior;
+  const nombres  = modo === 'categoria' ? nombresCat  : nombresPrior;
+  const campo    = modo === 'categoria' ? 'CAT_MANEJO': 'prioridad';
+
+  activas = new Set(Object.keys(colores));
+  crearBotones(colores, nombres, campo);
+  renderizar(colores, campo);
+}
+
+// ── Crear botones de filtro ────────────────────────────────
+function crearBotones(colores, nombres, campo) {
+  const cont = document.getElementById('contenedor-filtros');
+  cont.innerHTML = '';
+
+  Object.keys(colores).forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'filtro-btn activo';
+    btn.style.background = colores[key];
+    btn.textContent = nombres[key];
+    btn.dataset.key = key;
+
+    btn.addEventListener('click', () => {
+      if (activas.has(key)) {
+        activas.delete(key);
+        btn.classList.add('inactivo');
+      } else {
+        activas.add(key);
+        btn.classList.remove('inactivo');
+      }
+      renderizar(colores, campo);
+    });
+
+    cont.appendChild(btn);
+  });
+}
+
+// ── Renderizar capas ───────────────────────────────────────
+function renderizar(colores, campo) {
+  Object.values(capas).forEach(c => mapa.removeLayer(c));
+  capas = {};
+  let total = 0;
+
+  activas.forEach(key => {
+    const features = todosLosDatos.features.filter(
+      f => f.properties[campo] === key
+    );
+    total += features.length;
+
+    capas[key] = L.geoJSON({ type: 'FeatureCollection', features }, {
+      style: {
+        color:       colores[key],
+        fillColor:   colores[key],
+        fillOpacity: 0.45,
+        weight: 1
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties;
+
+        // Índice redondeado a 2 decimales
+        const indice = p.indice ? Number(p.indice).toFixed(2) : 'N/D';
+
+        // Etiqueta de prioridad con color
+        const colorPrior = colorsPrior[p.prioridad] || '#888';
+        const badgePrior = p.prioridad
+          ? `<span style="background:${colorPrior};color:white;padding:1px 6px;border-radius:4px;font-size:11px;">${p.prioridad}</span>`
+          : 'N/D';
+
+        layer.bindPopup(`
+          <div style="min-width:200px; font-size:12px;">
+            <b style="font-size:13px;">${p.NOMBRE}</b><br><br>
+            <b>Categoría:</b> ${p.CAT_MANEJO}<br>
+            <b>Estado(s):</b> ${p.ESTADOS}<br>
+            <b>Región:</b> ${p.REGION}<br>
+            <hr style="margin:5px 0;">
+            <b>Superficie total:</b> ${Number(p.SUPERFICIE).toLocaleString('es-MX', {maximumFractionDigits:0})} ha<br>
+            <b>Sup. terrestre:</b>   ${Number(p.S_TERRES).toLocaleString('es-MX',  {maximumFractionDigits:0})} ha<br>
+            <b>Sup. marina:</b>      ${Number(p.S_MARINA).toLocaleString('es-MX',  {maximumFractionDigits:0})} ha<br>
+            <hr style="margin:5px 0;">
+            <b>Primera declaratoria:</b> ${p.PRIM_DEC ? p.PRIM_DEC.slice(0,10) : 'N/D'}<br>
+            <b>Prog. de manejo:</b> ${p.PM ? p.PM.slice(0,10) : '⚠️ Sin programa'}<br>
+            <hr style="margin:5px 0;">
+            <b>Índice de priorización:</b> ${indice} / 13<br>
+            <b>Prioridad:</b> ${badgePrior}
+          </div>
+        `);
+
+        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 0.75, weight: 2 }); });
+        layer.on('mouseout',  function() { this.setStyle({ fillOpacity: 0.45, weight: 1 }); });
+      }
+    }).addTo(mapa);
+  });
+
+  document.getElementById('resumen').innerHTML =
+    `Mostrando <b>${total}</b> de 232 ANPs<br>
+     <span style="color:#d32f2f;">● Alta: 66</span> &nbsp;
+     <span style="color:#f9a825;">● Media: 132</span> &nbsp;
+     <span style="color:#388e3c;">● Baja: 34</span>`;
+}
+
+</script>
+</body>
+</html>
