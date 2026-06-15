@@ -153,7 +153,7 @@
       </table>
       <div class="nota">
         <b>Limitación del índice:</b> no incorpora datos de biodiversidad (CONABIO),
-        presión humana ni presupuesto asignado por ANP. En una versión institucional se enriquecería
+        ni poblaciones al rededor. En una versión institucional se enriquecería
         con estas capas para mayor precisión.
       </div>
     </div>
@@ -166,22 +166,22 @@
       <div class="chart-col">
         <h3>ANPs por categoría de manejo</h3>
         <div class="hbar"><span class="hbar-label">Parque Nacional (PN)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:85%;background:#2196F3;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:34%;background:#2196F3;"></div></div>
           <span class="hbar-val">79</span></div>
         <div class="hbar"><span class="hbar-label">Área Prot. F y F (APFF)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:61%;background:#FF9800;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:24.6%;background:#FF9800;"></div></div>
           <span class="hbar-val">57</span></div>
         <div class="hbar"><span class="hbar-label">Reserva Biosfera (RB)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:51%;background:#4CAF50;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:20.7%;background:#4CAF50;"></div></div>
           <span class="hbar-val">48</span></div>
         <div class="hbar"><span class="hbar-label">Santuario (SANT)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:30%;background:#E91E63;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:12%;background:#E91E63;"></div></div>
           <span class="hbar-val">28</span></div>
         <div class="hbar"><span class="hbar-label">Área Prot. RN (APRN)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:16%;background:#9C27B0;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:6.5%;background:#9C27B0;"></div></div>
           <span class="hbar-val">15</span></div>
         <div class="hbar"><span class="hbar-label">Monumento Natural (MN)</span>
-          <div class="hbar-track"><div class="hbar-fill" style="width:5%;background:#795548;"></div></div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:2.15%;background:#795548;"></div></div>
           <span class="hbar-val">5</span></div>
       </div>
       <div class="chart-col">
@@ -195,7 +195,7 @@
         <div class="hbar"><span class="hbar-label">Santuario</span>
           <div class="hbar-track"><div class="hbar-fill" style="width:14.13%;background:#d32f2f;"></div></div>
           <span class="hbar-val" id="sinpm-sant">...</span></div>
-        <div class="hbar"><span class="hbar-label">Área Prot. Recursos Naturales (APRN)</span>
+        <div class="hbar"><span class="hbar-label">Área Prot. RN (APRN)</span>
           <div class="hbar-track"><div class="hbar-fill" style="width:13%;background:#d32f2f;"></div></div>
           <span class="hbar-val" id="sinpm-aprn">...</span></div>
         <div class="hbar"><span class="hbar-label">Reserva Biosfera (RB)</span>
@@ -252,7 +252,7 @@ fetch('anp_mexico.geojson')
 
 function calcularSinPM() {
   const cats = ['PN','APFF','RB','APRN'];
-  const ids   = ['sinpm-pn','sinpm-apff','sinpm-rb','sinpm-aprn'];
+  const ids   = ['sinpm-pn','sinpm-apff','sinpm-rb','sinpm-aprn', 'sinpm-sant'];
   cats.forEach((cat, i) => {
     const n = todosLosDatos.filter(d => d.CAT_MANEJO === cat && !d.PM).length;
     const el = document.getElementById(ids[i]);
